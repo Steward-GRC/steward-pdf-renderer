@@ -1,0 +1,63 @@
+# Two replicas; one leader reconciles and the other takes over if it dies.
+# Set the image to the operator image you publish.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: steward-pdf-renderer-operator
+  labels:
+    app.kubernetes.io/name: steward-pdf-renderer
+    app.kubernetes.io/component: operator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: steward-pdf-renderer
+      app.kubernetes.io/component: operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: steward-pdf-renderer
+        app.kubernetes.io/component: operator
+    spec:
+      serviceAccountName: steward-pdf-renderer-operator
+      containers:
+        - name: operator
+          image: registry.example.org/steward-pdf-renderer/operator:dev
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          envFrom:
+            - configMapRef:
+                name: steward-pdf-renderer-operator
+          ports:
+            - name: probes
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9090
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: probes
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: probes
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
