@@ -7,7 +7,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"math"
 	"strconv"
 
 	"github.com/Steward-GRC/steward-pdf-renderer/internal/controller"
@@ -49,8 +48,8 @@ func Load(getenv func(string) string) (Config, error) {
 		errs = append(errs, errors.New("RENDERER_IMAGE is required"))
 	}
 	nonNegative := func(key, def string) int32 {
-		n, err := strconv.Atoi(or(key, def))
-		if err != nil || n < 0 || n > math.MaxInt32 {
+		n, err := strconv.ParseInt(or(key, def), 10, 32)
+		if err != nil || n < 0 {
 			errs = append(errs, fmt.Errorf("%s must be a whole number, 0 or more", key))
 			return 0
 		}

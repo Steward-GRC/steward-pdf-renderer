@@ -70,3 +70,11 @@ func TestLoadRejectsBadValues(t *testing.T) {
 		}
 	}
 }
+
+func TestLoadRejectsOutOfRange(t *testing.T) {
+	t.Parallel()
+	_, err := config.Load(env(map[string]string{"RENDERER_IMAGE": "img", "JOB_TTL_SECONDS": "4294967296"}))
+	if err == nil || !strings.Contains(err.Error(), "JOB_TTL_SECONDS") {
+		t.Errorf("err = %v, want JOB_TTL_SECONDS rejected", err)
+	}
+}
