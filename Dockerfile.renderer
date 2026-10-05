@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+# The one-shot renderer the operator's Jobs run. It needs Chromium, which needs
+# glibc, fonts and support libraries, so the runtime is Debian slim rather than
+# distroless.
+ARG GO_VERSION=1.26.6
+FROM golang:${GO_VERSION} AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+# VERSION is the image tag and COMMIT the full source SHA. An empty COMMIT
+# reports "unknown": the build context has no .git to fall back on.
+ARG VERSION=dev
+ARG COMMIT=
+RUN CGO_ENABLED=0 go build -trimpath \
+    -ldflags "-s -w -X github.com/Bugs5382/go-buildinfo.Version=${VERSION} -X github.com/Bugs5382/go-buildinfo.Commit=${COMMIT}" \
+    -o /out/renderer ./cmd/renderer
+
+FROM debian:trixie-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends chromium ca-certificates fonts-liberation \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --uid 65532 --create-home --shell /usr/sbin/nologin renderer
+COPY --from=build /out/renderer /usr/local/bin/renderer
+USER 65532:65532
+ENTRYPOINT ["/usr/local/bin/renderer"]
