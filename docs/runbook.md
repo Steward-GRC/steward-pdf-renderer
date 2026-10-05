@@ -35,6 +35,13 @@ curl -si localhost:8080/readyz
 
 The operator logs its version and commit when it starts.
 
+## Calling other services
+
+None. steward-delivery creates the `PdfRender` resources and reads their status through the
+Kubernetes API, and the renderer fetches whatever `spec.fetchURL` points at (delivery's internal HTML
+endpoint). Neither side imports the other's Go module; the contract is the CRD
+([PdfRender](pdfrender.md)).
+
 ## A render is stuck or failed
 
 - `kubectl get pdfrenders` shows each render's phase.
@@ -43,3 +50,5 @@ The operator logs its version and commit when it starts.
 - A Job deleted while `Pending` is created again; one deleted while `Running` marks the render
   `Failed` ("underlying Job disappeared mid-render"), since the render's outcome is unknown.
 - Deleting a `PdfRender` cancels it and removes its Job.
+- In the renderer's log, the last message before the error says which step failed: `fetching html`,
+  `rendered pdf` or `uploaded pdf`.
