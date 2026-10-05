@@ -39,7 +39,25 @@ type Config struct {
 	// JobTTLSecondsAfterFinished is how long a finished Job and its pod are
 	// kept, long enough for the caller to see the result and for debugging.
 	JobTTLSecondsAfterFinished int32
+	// JobServiceAccount is the service account the render pods run as; its
+	// projected token is how steward-delivery knows the HTML fetch comes from
+	// the renderer. Empty means DefaultJobServiceAccount.
+	JobServiceAccount string
 }
+
+// DefaultJobServiceAccount maps to the caller "pdf-renderer" in Steward's
+// service-to-service authentication.
+const DefaultJobServiceAccount = "steward-pdf-renderer"
+
+// The render pod's workload token: a projected service-account token with
+// Steward's audience, which the kubelet rotates in place.
+const (
+	workloadTokenVolume   = "steward-token"            // #nosec G101 -- a volume name, not a credential
+	workloadTokenDir      = "/var/run/secrets/steward" // #nosec G101 -- a mount path, not a credential
+	workloadTokenFile     = "token"
+	workloadTokenAudience = "steward"
+	workloadTokenSeconds  = int64(3600)
+)
 
 // PdfRenderReconciler reconciles a PdfRender. Now, when set, replaces
 // time.Now for status timestamps.
@@ -254,6 +272,10 @@ func (r *PdfRenderReconciler) now() time.Time {
 func (r *PdfRenderReconciler) buildJob(pdf *rendersv1alpha1.PdfRender) *batchv1.Job {
 	backoff := r.Config.JobBackoffLimit
 	ttl := r.Config.JobTTLSecondsAfterFinished
+	sa := r.Config.JobServiceAccount
+	if sa == "" {
+		sa = DefaultJobServiceAccount
+	}
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pdf.Name,
@@ -275,7 +297,19 @@ func (r *PdfRenderReconciler) buildJob(pdf *rendersv1alpha1.PdfRender) *batchv1.
 					},
 				},
 				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyNever,
+					RestartPolicy:      corev1.RestartPolicyNever,
+					ServiceAccountName: sa,
+					// The renderer never calls the Kubernetes API; it gets only
+					// the Steward-audience token below.
+					AutomountServiceAccountToken: ptr.To(false),
+					Volumes: []corev1.Volume{{
+						Name: workloadTokenVolume,
+						VolumeSource: corev1.VolumeSource{Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{{ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+								Audience: workloadTokenAudience, ExpirationSeconds: ptr.To(workloadTokenSeconds), Path: workloadTokenFile,
+							}}},
+						}},
+					}},
 					Containers: []corev1.Container{
 						{
 							Name:  "renderer",
@@ -288,7 +322,9 @@ func (r *PdfRenderReconciler) buildJob(pdf *rendersv1alpha1.PdfRender) *batchv1.
 								{Name: "SENSITIVITY", Value: pdf.Spec.Sensitivity},
 								{Name: "REQUESTED_BY", Value: pdf.Spec.RequestedBy},
 								{Name: "TRACE_ID", Value: pdf.Spec.Trace},
+								{Name: "WORKLOAD_TOKEN_FILE", Value: workloadTokenDir + "/" + workloadTokenFile},
 							},
+							VolumeMounts: []corev1.VolumeMount{{Name: workloadTokenVolume, MountPath: workloadTokenDir, ReadOnly: true}},
 							EnvFrom: []corev1.EnvFromSource{
 								{
 									SecretRef: &corev1.SecretEnvSource{

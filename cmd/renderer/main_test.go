@@ -44,6 +44,7 @@ func TestLoadConfigPopulated(t *testing.T) {
 	t.Setenv("AWS_REGION", "us-east-2")
 	t.Setenv("AWS_S3_ENDPOINT", "http://objects.example.org:9000")
 	t.Setenv("AWS_S3_FORCE_PATH_STYLE", "true")
+	t.Setenv("WORKLOAD_TOKEN_FILE", "/var/run/secrets/steward/token")
 
 	c, err := loadConfig()
 	if err != nil {

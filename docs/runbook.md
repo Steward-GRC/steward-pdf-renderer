@@ -39,7 +39,8 @@ The operator logs its version and commit when it starts.
 
 None. steward-delivery creates the `PdfRender` resources and reads their status through the
 Kubernetes API, and the renderer fetches whatever `spec.fetchURL` points at (delivery's internal HTML
-endpoint). Neither side imports the other's Go module; the contract is the CRD
+endpoint), sending its workload token as `Authorization: Bearer` (see
+[configuration](configuration.md#workload-token)). Neither side imports the other's Go module; the contract is the CRD
 ([PdfRender](pdfrender.md)).
 
 ## A render is stuck or failed
@@ -52,3 +53,7 @@ endpoint). Neither side imports the other's Go module; the contract is the CRD
 - Deleting a `PdfRender` cancels it and removes its Job.
 - In the renderer's log, the last message before the error says which step failed: `fetching html`,
   `rendered pdf` or `uploaded pdf`.
+- `fetch returned status 401`: delivery rejected the token. Check that the Job runs as
+  `JOB_SERVICE_ACCOUNT`, that its token audience is `steward`, and that delivery's
+  `WORKLOAD_ALLOWED_SERVICEACCOUNTS` lists `<namespace>/steward-pdf-renderer`. `403`: the pod runs as
+  another service account. `read WORKLOAD_TOKEN_FILE`: the projected token isn't mounted.

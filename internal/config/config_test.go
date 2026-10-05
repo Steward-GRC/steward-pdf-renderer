@@ -78,3 +78,20 @@ func TestLoadRejectsOutOfRange(t *testing.T) {
 		t.Errorf("err = %v, want JOB_TTL_SECONDS rejected", err)
 	}
 }
+
+func TestLoadJobServiceAccount(t *testing.T) {
+	c, err := config.Load(env(map[string]string{"RENDERER_IMAGE": "registry.example.org/renderer:v1"}))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.Controller.JobServiceAccount != "steward-pdf-renderer" {
+		t.Errorf("default JobServiceAccount = %q", c.Controller.JobServiceAccount)
+	}
+	c, err = config.Load(env(map[string]string{"RENDERER_IMAGE": "registry.example.org/renderer:v1", "JOB_SERVICE_ACCOUNT": "renderer-job"}))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if c.Controller.JobServiceAccount != "renderer-job" {
+		t.Errorf("JobServiceAccount = %q", c.Controller.JobServiceAccount)
+	}
+}

@@ -9,5 +9,6 @@ data:
   S3_SECRET_NAME: "steward-pdf-renderer-s3"
   JOB_BACKOFF_LIMIT: "3"
   JOB_TTL_SECONDS: "600"
+  JOB_SERVICE_ACCOUNT: "steward-pdf-renderer"
   LOG_LEVEL: "error"
   LOG_FORMAT: "json"
