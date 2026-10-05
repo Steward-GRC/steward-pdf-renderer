@@ -1,0 +1,16 @@
+domain: steward-grc.com
+layout:
+- go.kubebuilder.io/v4
+projectName: steward-pdf-renderer
+repo: github.com/Steward-GRC/steward-pdf-renderer
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: steward-grc.com
+  group: renders
+  kind: PdfRender
+  path: github.com/Steward-GRC/steward-pdf-renderer/api/v1alpha1
+  version: v1alpha1
+version: "3"
