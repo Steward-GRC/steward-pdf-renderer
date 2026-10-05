@@ -92,3 +92,63 @@ func TestReconcileConditions(t *testing.T) {
 		t.Errorf("condition = %+v", cond)
 	}
 }
+
+func TestReconcileJobCarriesTheWorkloadToken(t *testing.T) {
+	t.Parallel()
+
+	pdf := newPdfRender("render-8", "steward")
+	r, c := newTestReconciler(t, pdf)
+	key := types.NamespacedName{Name: pdf.Name, Namespace: pdf.Namespace}
+	if _, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	var job batchv1.Job
+	if err := c.Get(context.Background(), key, &job); err != nil {
+		t.Fatalf("get job: %v", err)
+	}
+	pod := job.Spec.Template.Spec
+	if pod.ServiceAccountName != "steward-pdf-renderer" {
+		t.Errorf("serviceAccountName = %q, want steward-pdf-renderer", pod.ServiceAccountName)
+	}
+	if pod.AutomountServiceAccountToken == nil || *pod.AutomountServiceAccountToken {
+		t.Errorf("the render pod must not get an API token")
+	}
+	if len(pod.Volumes) != 1 || pod.Volumes[0].Projected == nil || len(pod.Volumes[0].Projected.Sources) != 1 {
+		t.Fatalf("volumes = %+v, want one projected token", pod.Volumes)
+	}
+	tok := pod.Volumes[0].Projected.Sources[0].ServiceAccountToken
+	if tok == nil || tok.Audience != "steward" || tok.Path != "token" || tok.ExpirationSeconds == nil || *tok.ExpirationSeconds != 3600 {
+		t.Errorf("projected token = %+v, want audience steward at token, 1h", tok)
+	}
+	ctr := pod.Containers[0]
+	if len(ctr.VolumeMounts) != 1 || ctr.VolumeMounts[0].Name != pod.Volumes[0].Name ||
+		ctr.VolumeMounts[0].MountPath != "/var/run/secrets/steward" || !ctr.VolumeMounts[0].ReadOnly {
+		t.Errorf("volumeMounts = %+v", ctr.VolumeMounts)
+	}
+	env := map[string]string{}
+	for _, e := range ctr.Env {
+		env[e.Name] = e.Value
+	}
+	if env["WORKLOAD_TOKEN_FILE"] != "/var/run/secrets/steward/token" {
+		t.Errorf("WORKLOAD_TOKEN_FILE = %q", env["WORKLOAD_TOKEN_FILE"])
+	}
+}
+
+func TestReconcileJobUsesTheConfiguredServiceAccount(t *testing.T) {
+	t.Parallel()
+
+	pdf := newPdfRender("render-9", "steward")
+	r, c := newTestReconciler(t, pdf)
+	r.Config.JobServiceAccount = "renderer-job"
+	key := types.NamespacedName{Name: pdf.Name, Namespace: pdf.Namespace}
+	if _, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: key}); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+	var job batchv1.Job
+	if err := c.Get(context.Background(), key, &job); err != nil {
+		t.Fatalf("get job: %v", err)
+	}
+	if got := job.Spec.Template.Spec.ServiceAccountName; got != "renderer-job" {
+		t.Errorf("serviceAccountName = %q", got)
+	}
+}

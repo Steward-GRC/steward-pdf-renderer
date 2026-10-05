@@ -44,6 +44,7 @@ func TestLoadConfigPopulated(t *testing.T) {
 	t.Setenv("AWS_REGION", "us-east-2")
 	t.Setenv("AWS_S3_ENDPOINT", "http://objects.example.org:9000")
 	t.Setenv("AWS_S3_FORCE_PATH_STYLE", "true")
+	t.Setenv("WORKLOAD_TOKEN_FILE", "/var/run/secrets/steward/token")
 
 	c, err := loadConfig()
 	if err != nil {
@@ -101,5 +102,26 @@ func TestFetchHTMLEmptyURL(t *testing.T) {
 	t.Parallel()
 	if _, err := fetchHTML(context.Background(), "", time.Second); err == nil {
 		t.Errorf("fetchHTML(\"\") returned nil err")
+	}
+}
+
+func TestLoadConfigBrowserStartTimeout(t *testing.T) {
+	t.Setenv("FETCH_URL", "http://example.invalid/html")
+	t.Setenv("OUTPUT_BUCKET", "bkt")
+	t.Setenv("OUTPUT_KEY", "k.pdf")
+	t.Setenv("WORKLOAD_AUTH", "disabled")
+	c, err := loadConfig()
+	if err != nil || c.browserStartTimeout != 60*time.Second {
+		t.Fatalf("default: %v %v", c.browserStartTimeout, err)
+	}
+	t.Setenv("BROWSER_START_TIMEOUT", "90s")
+	if c, err = loadConfig(); err != nil || c.browserStartTimeout != 90*time.Second {
+		t.Fatalf("override: %v %v", c.browserStartTimeout, err)
+	}
+	for _, bad := range []string{"soon", "0s", "-1s"} {
+		t.Setenv("BROWSER_START_TIMEOUT", bad)
+		if _, err := loadConfig(); err == nil || !strings.Contains(err.Error(), "BROWSER_START_TIMEOUT") {
+			t.Errorf("%q: want an error naming BROWSER_START_TIMEOUT, got %v", bad, err)
+		}
 	}
 }

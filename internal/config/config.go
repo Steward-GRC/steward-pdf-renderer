@@ -35,8 +35,9 @@ func Load(getenv func(string) string) (Config, error) {
 	}
 	c := Config{
 		Controller: controller.Config{
-			RendererImage: getenv("RENDERER_IMAGE"),
-			S3SecretName:  or("S3_SECRET_NAME", "steward-pdf-renderer-s3"),
+			RendererImage:     getenv("RENDERER_IMAGE"),
+			S3SecretName:      or("S3_SECRET_NAME", "steward-pdf-renderer-s3"),
+			JobServiceAccount: or("JOB_SERVICE_ACCOUNT", controller.DefaultJobServiceAccount),
 		},
 		ProbePort:      or("PROBE_PORT", "8080"),
 		MetricsPort:    or("METRICS_PORT", "9090"),
