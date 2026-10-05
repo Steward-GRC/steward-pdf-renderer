@@ -53,6 +53,8 @@ endpoint), sending its workload token as `Authorization: Bearer` (see
 - Deleting a `PdfRender` cancels it and removes its Job.
 - In the renderer's log, the last message before the error says which step failed: `fetching html`,
   `rendered pdf` or `uploaded pdf`.
+- `chromedp: websocket url timeout reached`: the browser didn't open DevTools within 20 seconds. The
+  error ends with the browser's own output (`browser output: ...`), which says why.
 - `fetch returned status 401`: delivery rejected the token. Check that the Job runs as
   `JOB_SERVICE_ACCOUNT`, that its token audience is `steward`, and that delivery's
   `WORKLOAD_ALLOWED_SERVICEACCOUNTS` lists `<namespace>/steward-pdf-renderer`. `403`: the pod runs as
