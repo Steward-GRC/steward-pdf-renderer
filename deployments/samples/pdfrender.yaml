@@ -1,0 +1,14 @@
+# An example render. Apply it in the namespace the operator watches. The
+# fetch URL must be reachable from the Job's pod, the bucket must exist and the
+# object-storage Secret must hold working credentials.
+apiVersion: renders.steward-grc.com/v1alpha1
+kind: PdfRender
+metadata:
+  name: example-render
+spec:
+  policyVersionId: pv-example
+  fetchURL: http://delivery.example.org/versions/pv-example/html
+  outputBucket: steward-artifacts
+  outputKey: artifacts/pv-example/example-render.pdf
+  sensitivity: standard
+  requestedBy: erin

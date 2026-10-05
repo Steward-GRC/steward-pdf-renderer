@@ -20,6 +20,28 @@ with a message naming the variable. `LOG_LEVEL` and `LOG_FORMAT` follow go-log (
 The Kubernetes connection comes from the in-cluster service account, or `KUBECONFIG` outside a
 cluster.
 
+## Renderer
+
+The operator sets the render's variables on each Job; the object-storage ones come from the Secret
+named by `S3_SECRET_NAME`, which the adopter creates in the render namespace.
+
+| Variable | Set by | Meaning |
+| --- | --- | --- |
+| `FETCH_URL` | operator, required | `spec.fetchURL` |
+| `OUTPUT_BUCKET` | operator, required | `spec.outputBucket` |
+| `OUTPUT_KEY` | operator, required | `spec.outputKey` |
+| `PV_ID` | operator | `spec.policyVersionId`, logged |
+| `SENSITIVITY` | operator | `spec.sensitivity`; `sensitive` adds the watermark |
+| `REQUESTED_BY` | operator | `spec.requestedBy`, printed in the watermark |
+| `TRACE_ID` | operator | `spec.trace`, logged |
+| `AWS_S3_ENDPOINT` | Secret | an S3-compatible endpoint; empty for AWS S3 |
+| `AWS_REGION` | Secret | default `us-east-1` |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Secret | static keys; when both are empty the SDK's default chain is used (workload identity, instance roles) |
+| `AWS_S3_FORCE_PATH_STYLE` | Secret | `true` for path-style addressing (most self-hosted stores) |
+
+The fetch times out after 30 seconds and accepts at most 8 MiB; the render times out after 120
+seconds. The renderer logs its version and commit when it starts.
+
 ## Build arguments
 
 Both Dockerfiles take `VERSION` (the image tag) and `COMMIT` (the full source SHA) and stamp them into
