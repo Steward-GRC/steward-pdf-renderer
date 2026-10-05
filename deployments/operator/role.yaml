@@ -1,0 +1,38 @@
+# Namespace-scoped: the operator manages PdfRenders and Jobs in its own
+# namespace (WATCH_NAMESPACE). Watching every namespace needs the same rules
+# in a ClusterRole.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: steward-pdf-renderer-operator
+rules:
+  - apiGroups: ["renders.steward-grc.com"]
+    resources: ["pdfrenders"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["renders.steward-grc.com"]
+    resources: ["pdfrenders/status"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["renders.steward-grc.com"]
+    resources: ["pdfrenders/finalizers"]
+    verbs: ["update"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: steward-pdf-renderer-operator
+subjects:
+  - kind: ServiceAccount
+    name: steward-pdf-renderer-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: steward-pdf-renderer-operator

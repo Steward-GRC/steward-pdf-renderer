@@ -1,0 +1,13 @@
+# The operator's settings, loaded with envFrom. Restart the operator after a
+# change. Set RENDERER_IMAGE to the renderer image you publish.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: steward-pdf-renderer-operator
+data:
+  RENDERER_IMAGE: "registry.example.org/steward-pdf-renderer/renderer:dev"
+  S3_SECRET_NAME: "steward-pdf-renderer-s3"
+  JOB_BACKOFF_LIMIT: "3"
+  JOB_TTL_SECONDS: "600"
+  LOG_LEVEL: "error"
+  LOG_FORMAT: "json"
