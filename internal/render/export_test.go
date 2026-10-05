@@ -5,10 +5,11 @@ package render
 
 import "time"
 
-// SetBrowserForTest points RenderHTMLToPDF at another browser binary and
-// startup timeout until the returned func restores them.
+// SetBrowserForTest points the renderer at another browser binary and, when
+// timeout isn't zero, start-up timeout, until the returned func restores
+// them.
 func SetBrowserForTest(path string, timeout time.Duration) func() {
-	oldPath, oldTimeout := execPath, wsURLReadTimeout
-	execPath, wsURLReadTimeout = path, timeout
-	return func() { execPath, wsURLReadTimeout = oldPath, oldTimeout }
+	oldPath, oldTimeout := execPath, testStartTimeout
+	execPath, testStartTimeout = path, timeout
+	return func() { execPath, testStartTimeout = oldPath, oldTimeout }
 }

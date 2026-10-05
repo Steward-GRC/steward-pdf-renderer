@@ -27,7 +27,7 @@ func TestChromedpRendersPDF(t *testing.T) {
 		t.Skip("no Chromium or Chrome on PATH")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*render.DefaultStartTimeout)
 	defer cancel()
 	css := render.WatermarkCSS(render.WatermarkParams{SensitivityLabel: "CONFIDENTIAL", RecipientIdentity: "erin", Timestamp: time.Now()})
 	pdf, err := render.ChromedpRenderer().Render(ctx, "<h1>Desk Booking Policy</h1>", css)

@@ -62,3 +62,33 @@ func TestRenderReportsTheBrowserOutputWhenItFailsToStart(t *testing.T) {
 		t.Fatalf("want the browser's output in the error, got %v", err)
 	}
 }
+
+func TestDefaultBrowserStartTimeoutAllowsASlowRunner(t *testing.T) {
+	if render.DefaultStartTimeout != 60*time.Second {
+		t.Errorf("DefaultStartTimeout = %v, want 60s", render.DefaultStartTimeout)
+	}
+}
+
+// The start-up wait is the renderer's setting, not chromedp's fixed 20s.
+func TestRenderWaitsTheConfiguredStartTimeout(t *testing.T) {
+	bin, _ := fakeBrowser(t)
+	defer render.SetBrowserForTest(bin, 0)()
+
+	start := time.Now()
+	_, err := render.NewChromedpRenderer(render.Options{StartTimeout: 300 * time.Millisecond}).Render(context.Background(), "<p>x</p>", "")
+	if err == nil {
+		t.Fatal("a browser that never opens DevTools must fail the render")
+	}
+	if d := time.Since(start); d > 5*time.Second {
+		t.Errorf("gave up after %v, want about the 300ms start timeout", d)
+	}
+
+	start = time.Now()
+	_, err = render.NewChromedpRenderer(render.Options{StartTimeout: 1500 * time.Millisecond}).Render(context.Background(), "<p>x</p>", "")
+	if err == nil {
+		t.Fatal("a browser that never opens DevTools must fail the render")
+	}
+	if d := time.Since(start); d < 1400*time.Millisecond {
+		t.Errorf("gave up after %v, before the 1.5s start timeout", d)
+	}
+}

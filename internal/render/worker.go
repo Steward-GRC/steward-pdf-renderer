@@ -29,16 +29,34 @@ func (f RendererFunc) Render(ctx context.Context, htmlContent, watermarkCSS stri
 	return f(ctx, htmlContent, watermarkCSS)
 }
 
+// DefaultStartTimeout is how long the browser has to open DevTools. A cold
+// start on a busy shared machine can take well over chromedp's own 20s.
+const DefaultStartTimeout = 60 * time.Second
+
 // execPath overrides the browser binary chromedp looks up; empty finds it on
-// PATH. wsURLReadTimeout bounds how long the browser has to open DevTools.
+// PATH. testStartTimeout, when set, replaces every renderer's start timeout.
 var (
 	execPath         = ""
-	wsURLReadTimeout = 20 * time.Second
+	testStartTimeout time.Duration
 )
 
+// Options tune the Chromium renderer.
+type Options struct {
+	// StartTimeout bounds the browser's start-up; zero means
+	// DefaultStartTimeout.
+	StartTimeout time.Duration
+}
+
 // ChromedpRenderer is the production Renderer that drives headless Chromium
-// via chromedp.
-func ChromedpRenderer() Renderer { return RendererFunc(RenderHTMLToPDF) }
+// via chromedp, with the default options.
+func ChromedpRenderer() Renderer { return NewChromedpRenderer(Options{}) }
+
+// NewChromedpRenderer is ChromedpRenderer with opts.
+func NewChromedpRenderer(opts Options) Renderer {
+	return RendererFunc(func(ctx context.Context, htmlContent, watermarkCSS string) ([]byte, error) {
+		return renderHTMLToPDF(ctx, htmlContent, watermarkCSS, opts)
+	})
+}
 
 // RenderHTMLToPDF boots a fresh headless Chromium process
 // (chromedp's defaults plus NoSandbox and DisableGPU — the container ships a Chromium binary
@@ -49,6 +67,17 @@ func ChromedpRenderer() Renderer { return RendererFunc(RenderHTMLToPDF) }
 // The data: URL is base64-encoded so quotes, ampersands and non-ASCII text
 // travel intact.
 func RenderHTMLToPDF(ctx context.Context, htmlContent string, watermarkCSS string) ([]byte, error) {
+	return renderHTMLToPDF(ctx, htmlContent, watermarkCSS, Options{})
+}
+
+func renderHTMLToPDF(ctx context.Context, htmlContent, watermarkCSS string, o Options) ([]byte, error) {
+	startTimeout := o.StartTimeout
+	if startTimeout <= 0 {
+		startTimeout = DefaultStartTimeout
+	}
+	if testStartTimeout > 0 {
+		startTimeout = testStartTimeout
+	}
 	if watermarkCSS != "" {
 		// Prepend the watermark <style> so it overrides any conflicting rules
 		// in the policy HTML's own <head>.
@@ -63,7 +92,7 @@ func RenderHTMLToPDF(ctx context.Context, htmlContent string, watermarkCSS strin
 	out := &browserOutput{}
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.NoSandbox, chromedp.DisableGPU,
-		chromedp.WSURLReadTimeout(wsURLReadTimeout), chromedp.CombinedOutput(out))
+		chromedp.WSURLReadTimeout(startTimeout), chromedp.CombinedOutput(out))
 	if execPath != "" {
 		opts = append(opts, chromedp.ExecPath(execPath))
 	}

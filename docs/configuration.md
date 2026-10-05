@@ -40,6 +40,7 @@ named by `S3_SECRET_NAME`, which the adopter creates in the render namespace.
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Secret | static keys; when both are empty the SDK's default chain is used (workload identity, instance roles) |
 | `AWS_S3_FORCE_PATH_STYLE` | Secret | `true` for path-style addressing (most self-hosted stores) |
 | `WORKLOAD_TOKEN_FILE` | operator, required | `/var/run/secrets/steward/token`, the Job's projected service-account token (audience `steward`), sent on the HTML fetch |
+| `BROWSER_START_TIMEOUT` | by hand | how long Chromium has to start, default `60s`; a cold start on a busy node can take over 20 seconds |
 | `WORKLOAD_AUTH` | by hand | `disabled` fetches with no token, for local runs only; it's the only accepted value |
 
 ## Workload token

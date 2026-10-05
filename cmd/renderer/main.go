@@ -64,6 +64,8 @@ type runConfig struct {
 
 	httpTimeout   time.Duration
 	renderTimeout time.Duration
+	// browserStartTimeout bounds Chromium's start-up (BROWSER_START_TIMEOUT).
+	browserStartTimeout time.Duration
 }
 
 // Workload-token settings, the names every Steward service uses.
@@ -103,6 +105,16 @@ func loadConfig() (runConfig, error) {
 		errs = append(errs, fmt.Errorf("%s=%q: the only accepted value is %q", envAuthMode, mode, authDisabled))
 	case c.tokenFile == "" && mode != authDisabled:
 		errs = append(errs, fmt.Errorf("%s is required to fetch the HTML; set %s=%s for local runs only", envTokenFile, envAuthMode, authDisabled))
+	}
+
+	c.browserStartTimeout = render.DefaultStartTimeout
+	if v := os.Getenv("BROWSER_START_TIMEOUT"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil || d <= 0 {
+			errs = append(errs, fmt.Errorf("BROWSER_START_TIMEOUT=%q must be a positive duration", v))
+		} else {
+			c.browserStartTimeout = d
+		}
 	}
 
 	var missing []string
@@ -152,7 +164,7 @@ func run(ctx context.Context, logger log.Logger) error {
 	if err != nil {
 		return fmt.Errorf("object storage: %w", err)
 	}
-	return renderPDF(ctx, cfg, render.ChromedpRenderer(), store, logger)
+	return renderPDF(ctx, cfg, render.NewChromedpRenderer(render.Options{StartTimeout: cfg.browserStartTimeout}), store, logger)
 }
 
 func storeConfig(c runConfig) s3store.Config {
