@@ -22,9 +22,9 @@ type WatermarkParams struct {
 	// RecipientIdentity is the requester's user ID or email. Recipient
 	// attribution is the deterrent against unauthorized re-sharing.
 	RecipientIdentity string
-	// Timestamp is when the export was requested. Always rendered as RFC3339
-	// UTC so the banner is unambiguous across time zones and matches the
-	// audit log.
+	// Timestamp is the time of the export request, printed as RFC3339 UTC
+	// so the banner reads the same in every time zone and matches the audit
+	// log.
 	Timestamp time.Time
 }
 
