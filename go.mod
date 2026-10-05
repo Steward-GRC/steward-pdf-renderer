@@ -2,6 +2,8 @@ module github.com/Steward-GRC/steward-pdf-renderer
 
 go 1.26.0
 
+toolchain go1.26.6
+
 require (
 	github.com/Bugs5382/go-buildinfo v1.0.0
 	github.com/Bugs5382/go-log v1.3.0
