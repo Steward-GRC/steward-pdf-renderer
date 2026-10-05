@@ -4,6 +4,7 @@ vars:
   TESTPARALLELISM: 4
   GOLIC_VERSION: v0.3.0
   GOLANGCI_VERSION: v2.12.2
+  CONTROLLER_GEN_VERSION: v0.22.0
   COMMON_LIC: "2026 The Steward Authors"
   TEMPLATE_LIC: "spdx-apache2"
 tasks:
@@ -15,6 +16,10 @@ tasks:
     cmds:
       - gofmt -w .
       - goimports -w ./
+  generate:
+    desc: Regenerate the deepcopy code and the CRD manifest from the API types
+    cmds:
+      - go run sigs.k8s.io/controller-tools/cmd/controller-gen@{{.CONTROLLER_GEN_VERSION}} object:headerFile=hack/boilerplate.go.txt crd paths=./api/... output:crd:artifacts:config=deployments/crd
   build:
     desc: Build all packages
     cmds:
