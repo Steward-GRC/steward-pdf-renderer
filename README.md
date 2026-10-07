@@ -34,6 +34,9 @@ Build the images with `docker build -f Dockerfile.operator` and `-f Dockerfile.r
 - [Configuration](docs/configuration.md): the operator and the renderer.
 - [Runbook](docs/runbook.md): install, probes and failed renders.
 
+- [Contributing](https://github.com/Steward-GRC/.github/blob/main/.github/CONTRIBUTING.md) and
+  [security](https://github.com/Steward-GRC/.github/blob/main/.github/SECURITY.md)
+
 ## 🛠 Develop
 
 ```bash
