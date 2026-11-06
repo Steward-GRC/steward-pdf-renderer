@@ -2,7 +2,7 @@
 # The one-shot renderer the operator's Jobs run. It needs Chromium, which needs
 # glibc, fonts and support libraries, so the runtime is Debian slim rather than
 # distroless.
-ARG GO_VERSION=1.26.6
+ARG GO_VERSION=1.26.10
 FROM golang:${GO_VERSION} AS build
 WORKDIR /src
 COPY go.mod go.sum ./
