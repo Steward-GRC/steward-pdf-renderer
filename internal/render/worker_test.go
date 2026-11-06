@@ -29,7 +29,7 @@ func TestChromedpRendersPDF(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*render.DefaultStartTimeout)
 	defer cancel()
-	css := render.WatermarkCSS(render.WatermarkParams{SensitivityLabel: "CONFIDENTIAL", RecipientIdentity: "erin", Timestamp: time.Now()})
+	css := render.WatermarkCSS(render.WatermarkParams{SensitivityLabel: "SENSITIVE", RecipientIdentity: "erin", Timestamp: time.Now()})
 	pdf, err := render.ChromedpRenderer().Render(ctx, "<h1>Desk Booking Policy</h1>", css)
 	if err != nil {
 		t.Fatalf("Render: %v", err)

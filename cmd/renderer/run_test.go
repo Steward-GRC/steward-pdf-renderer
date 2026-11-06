@@ -101,7 +101,7 @@ func TestRenderSensitiveAddsWatermark(t *testing.T) {
 	if err := renderPDF(context.Background(), testConfig(srv.URL, "sensitive"), r, memstore.New(), testLogger()); err != nil {
 		t.Fatalf("renderPDF: %v", err)
 	}
-	for _, want := range []string{"CONFIDENTIAL", "erin", "body::after"} {
+	for _, want := range []string{"SENSITIVE", "erin", "body::after"} {
 		if !strings.Contains(r.watermark, want) {
 			t.Errorf("watermark missing %q: %s", want, r.watermark)
 		}

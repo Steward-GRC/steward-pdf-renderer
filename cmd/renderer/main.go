@@ -191,7 +191,7 @@ func renderPDF(ctx context.Context, cfg runConfig, r render.Renderer, store obje
 	watermarkCSS := ""
 	if strings.EqualFold(cfg.sensitivity, "sensitive") {
 		watermarkCSS = render.WatermarkCSS(render.WatermarkParams{
-			SensitivityLabel:  "CONFIDENTIAL",
+			SensitivityLabel:  "SENSITIVE",
 			RecipientIdentity: cfg.requestedBy,
 			Timestamp:         time.Now().UTC(),
 		})
