@@ -19,6 +19,12 @@ spec:
   outputKey: artifacts/pv-42/render-0001.pdf
   sensitivity: standard
   requestedBy: erin
+  organisation: Example Organisation
+  documentNumber: POL-FACILITIES-000001
+  documentVersion: v1.0.0
+  documentStatus: Published
+  documentOwner: Dave
+  paperSize: A4
 status:
   phase: Succeeded
   outputURL: s3://steward-artifacts/artifacts/pv-42/render-0001.pdf
@@ -34,7 +40,15 @@ status:
 | `outputKey` | yes | the object key for the PDF; the caller keeps it unique |
 | `sensitivity` | no | `standard` (default, no watermark) or `sensitive` (the requester and the time drawn diagonally on every page) |
 | `requestedBy` | no | the requester's user id, printed in the sensitive watermark |
+| `organisation` | no | the organisation's name, with its initials as a mark, in the running header |
+| `documentNumber`, `documentVersion`, `documentStatus` | no | printed as "number · version · status" on the right of the running header |
+| `documentOwner` | no | printed in the running footer as "owner · Printed date" |
+| `paperSize` | no | `A4` (default) or `Letter` |
 | `trace` | no | the caller's trace id, logged by the renderer |
+
+Every page has 20 mm top and bottom and 18 mm left and right margins, a running header and a running
+footer ("Steward · Page n of N" on the right). A field left empty is left out. The footer's print time
+is in UTC.
 
 The operator reads the spec once, when it creates the Job. Deleting the resource cancels the render
 and removes the Job with it.

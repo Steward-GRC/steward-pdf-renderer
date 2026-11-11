@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Steward-GRC/steward-pdf-renderer/internal/render"
 )
 
 // TestLoadConfigMissingRequired confirms the required env vars produce a
@@ -123,5 +125,48 @@ func TestLoadConfigBrowserStartTimeout(t *testing.T) {
 		if _, err := loadConfig(); err == nil || !strings.Contains(err.Error(), "BROWSER_START_TIMEOUT") {
 			t.Errorf("%q: want an error naming BROWSER_START_TIMEOUT, got %v", bad, err)
 		}
+	}
+}
+
+// TestLoadConfigPrintFrame reads the header and footer fields the operator
+// passes, and builds the frame the renderer prints.
+func TestLoadConfigPrintFrame(t *testing.T) {
+	t.Setenv("FETCH_URL", "http://example.invalid/html")
+	t.Setenv("OUTPUT_BUCKET", "bkt")
+	t.Setenv("OUTPUT_KEY", "k.pdf")
+	t.Setenv("WORKLOAD_AUTH", "disabled")
+	t.Setenv("ORGANISATION", "Example Organisation")
+	t.Setenv("DOC_NUMBER", "POL-FACILITIES-000001")
+	t.Setenv("DOC_VERSION", "v1.0.0")
+	t.Setenv("DOC_STATUS", "Published")
+	t.Setenv("DOC_OWNER", "Dave")
+	t.Setenv("PAPER_SIZE", "Letter")
+
+	c, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	now := time.Date(2026, 10, 3, 9, 30, 0, 0, time.UTC)
+	f := printFrame(c, now)
+	if f.Organisation != "Example Organisation" || f.Number != "POL-FACILITIES-000001" || f.Version != "v1.0.0" ||
+		f.Status != "Published" || f.Owner != "Dave" || f.Paper != render.PaperLetter || !f.PrintedAt.Equal(now) {
+		t.Errorf("frame = %+v", f)
+	}
+}
+
+// TestLoadConfigPaperSize defaults to A4 and rejects what is not A4 or Letter.
+func TestLoadConfigPaperSize(t *testing.T) {
+	t.Setenv("FETCH_URL", "http://example.invalid/html")
+	t.Setenv("OUTPUT_BUCKET", "bkt")
+	t.Setenv("OUTPUT_KEY", "k.pdf")
+	t.Setenv("WORKLOAD_AUTH", "disabled")
+	t.Setenv("PAPER_SIZE", "")
+	c, err := loadConfig()
+	if err != nil || printFrame(c, time.Now()).Paper != render.PaperA4 {
+		t.Fatalf("default: %+v %v", c, err)
+	}
+	t.Setenv("PAPER_SIZE", "A3")
+	if _, err := loadConfig(); err == nil || !strings.Contains(err.Error(), "PAPER_SIZE") {
+		t.Errorf("want an error naming PAPER_SIZE, got %v", err)
 	}
 }

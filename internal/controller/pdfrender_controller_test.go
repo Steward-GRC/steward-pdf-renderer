@@ -72,6 +72,12 @@ func newPdfRender(name, namespace string) *rendersv1alpha1.PdfRender {
 			OutputKey:       "artifacts/pv-42/" + name + ".pdf",
 			Sensitivity:     "standard",
 			RequestedBy:     "user-1",
+			Organisation:    "Example Organisation",
+			DocumentNumber:  "POL-FACILITIES-000001",
+			DocumentVersion: "v1.0.0",
+			DocumentStatus:  "Published",
+			DocumentOwner:   "Dave",
+			PaperSize:       "Letter",
 		},
 	}
 }

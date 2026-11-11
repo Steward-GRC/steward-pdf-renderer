@@ -45,6 +45,31 @@ type PdfRenderSpec struct {
 	// against it.
 	RequestedBy string `json:"requestedBy,omitempty"`
 
+	// Organisation is the organisation's name, printed in the running header
+	// of every page with its initials as a mark.
+	Organisation string `json:"organisation,omitempty"`
+
+	// DocumentNumber is the document's number (e.g. POL-FACILITIES-000001),
+	// printed in the running header.
+	DocumentNumber string `json:"documentNumber,omitempty"`
+
+	// DocumentVersion is the document's version (e.g. v1.0.0), printed in the
+	// running header.
+	DocumentVersion string `json:"documentVersion,omitempty"`
+
+	// DocumentStatus is the document's status (e.g. Published), printed in the
+	// running header.
+	DocumentStatus string `json:"documentStatus,omitempty"`
+
+	// DocumentOwner is the document's owner, printed in the running footer
+	// with the print date.
+	DocumentOwner string `json:"documentOwner,omitempty"`
+
+	// PaperSize is the page size: A4 (the default) or Letter.
+	// +kubebuilder:validation:Enum=A4;Letter
+	// +kubebuilder:default=A4
+	PaperSize string `json:"paperSize,omitempty"`
+
 	// Trace is the caller's trace id, passed to the renderer so its logs
 	// correlate with the request that asked for the PDF.
 	Trace string `json:"trace,omitempty"`
