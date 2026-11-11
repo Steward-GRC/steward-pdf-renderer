@@ -71,7 +71,8 @@ func TestCRDContract(t *testing.T) {
 
 	props := v.Schema.OpenAPIV3Schema.Properties
 	spec := props["spec"]
-	for _, f := range []string{"policyVersionId", "fetchURL", "outputBucket", "outputKey", "sensitivity", "requestedBy", "trace"} {
+	for _, f := range []string{"policyVersionId", "fetchURL", "outputBucket", "outputKey", "sensitivity", "requestedBy", "trace",
+		"organisation", "documentNumber", "documentVersion", "documentStatus", "documentOwner", "paperSize"} {
 		if _, ok := spec.Properties[f]; !ok {
 			t.Errorf("spec.%s missing", f)
 		}
@@ -94,6 +95,16 @@ func TestCRDContract(t *testing.T) {
 	}
 	if d := spec.Properties["sensitivity"].Default; d == nil || string(d.Raw) != `"standard"` {
 		t.Errorf("sensitivity default = %v, want standard", d)
+	}
+
+	var papers []string
+	for _, e := range spec.Properties["paperSize"].Enum {
+		var s string
+		_ = json.Unmarshal(e.Raw, &s)
+		papers = append(papers, s)
+	}
+	if want := []string{"A4", "Letter"}; !slices.Equal(papers, want) {
+		t.Errorf("paperSize enum = %v, want %v", papers, want)
 	}
 
 	status := props["status"]

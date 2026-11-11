@@ -69,6 +69,14 @@ func TestReconcileNewJobShape(t *testing.T) {
 	if env["SENSITIVITY"] != "sensitive" || env["TRACE_ID"] != "trace-7" || env["REQUESTED_BY"] != "user-1" {
 		t.Errorf("env = %v", env)
 	}
+	for k, want := range map[string]string{
+		"ORGANISATION": "Example Organisation", "DOC_NUMBER": "POL-FACILITIES-000001", "DOC_VERSION": "v1.0.0",
+		"DOC_STATUS": "Published", "DOC_OWNER": "Dave", "PAPER_SIZE": "Letter",
+	} {
+		if env[k] != want {
+			t.Errorf("env %s = %q, want %q", k, env[k], want)
+		}
+	}
 }
 
 func TestReconcileConditions(t *testing.T) {

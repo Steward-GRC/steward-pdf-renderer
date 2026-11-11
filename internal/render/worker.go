@@ -45,6 +45,10 @@ type Options struct {
 	// StartTimeout bounds the browser's start-up; zero means
 	// DefaultStartTimeout.
 	StartTimeout time.Duration
+	// Frame, when set, gives every page the stored print design's margins,
+	// running header and running footer. Nil prints with Chromium's defaults
+	// and no header or footer.
+	Frame *Frame
 }
 
 // ChromedpRenderer is the production Renderer that drives headless Chromium
@@ -107,9 +111,11 @@ func renderHTMLToPDF(ctx context.Context, htmlContent, watermarkCSS string, o Op
 		chromedp.Navigate(dataURL),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			var err error
-			buf, _, err = page.PrintToPDF().
-				WithPrintBackground(true).
-				Do(ctx)
+			params := page.PrintToPDF().WithPrintBackground(true)
+			if o.Frame != nil {
+				params = o.Frame.PrintParams()
+			}
+			buf, _, err = params.Do(ctx)
 			return err
 		}),
 	); err != nil {

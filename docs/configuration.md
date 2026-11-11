@@ -34,6 +34,9 @@ named by `S3_SECRET_NAME`, which the adopter creates in the render namespace.
 | `PV_ID` | operator | `spec.policyVersionId`, logged |
 | `SENSITIVITY` | operator | `spec.sensitivity`; `sensitive` adds the watermark |
 | `REQUESTED_BY` | operator | `spec.requestedBy`, printed in the watermark |
+| `ORGANISATION`, `DOC_NUMBER`, `DOC_VERSION`, `DOC_STATUS` | operator | `spec.organisation`, `spec.documentNumber`, `spec.documentVersion`, `spec.documentStatus`, printed in the running header |
+| `DOC_OWNER` | operator | `spec.documentOwner`, printed in the running footer |
+| `PAPER_SIZE` | operator | `spec.paperSize`: `A4` (default) or `Letter`; anything else fails the Job |
 | `TRACE_ID` | operator | `spec.trace`, logged |
 | `AWS_S3_ENDPOINT` | Secret | an S3-compatible endpoint; empty for AWS S3 |
 | `AWS_REGION` | Secret | default `us-east-1` |

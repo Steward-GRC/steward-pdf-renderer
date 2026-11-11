@@ -12,3 +12,9 @@ spec:
   outputKey: artifacts/pv-example/example-render.pdf
   sensitivity: standard
   requestedBy: erin
+  organisation: Example Organisation
+  documentNumber: POL-FACILITIES-000001
+  documentVersion: v1.0.0
+  documentStatus: Published
+  documentOwner: Dave
+  paperSize: A4

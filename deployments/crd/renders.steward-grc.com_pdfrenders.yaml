@@ -55,10 +55,35 @@ spec:
               resource cancels the render: the Job goes with it through its owner
               reference.
             properties:
+              documentNumber:
+                description: |-
+                  DocumentNumber is the document's number (e.g. POL-FACILITIES-000001),
+                  printed in the running header.
+                type: string
+              documentOwner:
+                description: |-
+                  DocumentOwner is the document's owner, printed in the running footer
+                  with the print date.
+                type: string
+              documentStatus:
+                description: |-
+                  DocumentStatus is the document's status (e.g. Published), printed in the
+                  running header.
+                type: string
+              documentVersion:
+                description: |-
+                  DocumentVersion is the document's version (e.g. v1.0.0), printed in the
+                  running header.
+                type: string
               fetchURL:
                 description: |-
                   FetchURL is the URL the renderer GETs for the HTML to print. It must be
                   reachable from the Job's pod.
+                type: string
+              organisation:
+                description: |-
+                  Organisation is the organisation's name, printed in the running header
+                  of every page with its initials as a mark.
                 type: string
               outputBucket:
                 description: |-
@@ -69,6 +94,13 @@ spec:
                 description: |-
                   OutputKey is the object key for the PDF. The caller picks it and keeps
                   it unique.
+                type: string
+              paperSize:
+                default: A4
+                description: 'PaperSize is the page size: A4 (the default) or Letter.'
+                enum:
+                - A4
+                - Letter
                 type: string
               policyVersionId:
                 description: |-

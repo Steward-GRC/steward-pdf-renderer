@@ -49,7 +49,14 @@ type runConfig struct {
 	outputKey       string
 	sensitivity     string
 	requestedBy     string
-	traceID         string
+	// The running header and footer, and the page size (see render.Frame).
+	organisation string
+	docNumber    string
+	docVersion   string
+	docStatus    string
+	docOwner     string
+	paperSize    render.PaperSize
+	traceID      string
 
 	// Object storage, from the Secret the operator names.
 	s3Endpoint       string
@@ -85,6 +92,12 @@ func loadConfig() (runConfig, error) {
 		outputKey:       os.Getenv("OUTPUT_KEY"),
 		sensitivity:     os.Getenv("SENSITIVITY"),
 		requestedBy:     os.Getenv("REQUESTED_BY"),
+		organisation:    os.Getenv("ORGANISATION"),
+		docNumber:       os.Getenv("DOC_NUMBER"),
+		docVersion:      os.Getenv("DOC_VERSION"),
+		docStatus:       os.Getenv("DOC_STATUS"),
+		docOwner:        os.Getenv("DOC_OWNER"),
+		paperSize:       render.PaperSize(envOr("PAPER_SIZE", string(render.PaperA4))),
 		traceID:         os.Getenv("TRACE_ID"),
 
 		s3Endpoint:       os.Getenv("AWS_S3_ENDPOINT"),
@@ -105,6 +118,10 @@ func loadConfig() (runConfig, error) {
 		errs = append(errs, fmt.Errorf("%s=%q: the only accepted value is %q", envAuthMode, mode, authDisabled))
 	case c.tokenFile == "" && mode != authDisabled:
 		errs = append(errs, fmt.Errorf("%s is required to fetch the HTML; set %s=%s for local runs only", envTokenFile, envAuthMode, authDisabled))
+	}
+
+	if !c.paperSize.Valid() {
+		errs = append(errs, fmt.Errorf("PAPER_SIZE=%q must be %q or %q", c.paperSize, render.PaperA4, render.PaperLetter))
 	}
 
 	c.browserStartTimeout = render.DefaultStartTimeout
@@ -164,7 +181,29 @@ func run(ctx context.Context, logger log.Logger) error {
 	if err != nil {
 		return fmt.Errorf("object storage: %w", err)
 	}
-	return renderPDF(ctx, cfg, render.NewChromedpRenderer(render.Options{StartTimeout: cfg.browserStartTimeout}), store, logger)
+	frame := printFrame(cfg, time.Now())
+	logger.Debug("print frame",
+		log.F("paper", string(frame.Paper)),
+		log.F("has_organisation", frame.Organisation != ""),
+		log.F("has_number", frame.Number != ""),
+		log.F("has_version", frame.Version != ""),
+		log.F("has_status", frame.Status != ""),
+		log.F("has_owner", frame.Owner != ""))
+	return renderPDF(ctx, cfg, render.NewChromedpRenderer(render.Options{StartTimeout: cfg.browserStartTimeout, Frame: &frame}), store, logger)
+}
+
+// printFrame is the running header and footer for this render, stamped with
+// the time the PDF is produced.
+func printFrame(c runConfig, now time.Time) render.Frame {
+	return render.Frame{
+		Organisation: c.organisation,
+		Number:       c.docNumber,
+		Version:      c.docVersion,
+		Status:       c.docStatus,
+		Owner:        c.docOwner,
+		PrintedAt:    now.UTC(),
+		Paper:        c.paperSize,
+	}
 }
 
 func storeConfig(c runConfig) s3store.Config {
