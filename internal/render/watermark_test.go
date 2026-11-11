@@ -130,3 +130,25 @@ func TestWatermarkFontFitsTheTile(t *testing.T) {
 		t.Errorf("font size %v pt, want 12 to 28", size)
 	}
 }
+
+// TestWatermarkTileIsValidDataURI guards the encoding of the tile in the CSS:
+// in a data: URI a "+" is a literal plus, not a space, so a form-encoded tile
+// ("<svg+xmlns=...") is not SVG and Chromium draws no watermark at all.
+func TestWatermarkTileIsValidDataURI(t *testing.T) {
+	t.Parallel()
+
+	m := regexp.MustCompile(`url\("data:image/svg\+xml,([^"]+)"\)`).FindStringSubmatch(render.WatermarkCSS(sample()))
+	if m == nil {
+		t.Fatal("watermark CSS has no SVG tile")
+	}
+	if strings.Contains(m[1], "+") {
+		t.Errorf("tile carries a literal %q, which a data: URI reads as a plus sign:\n%s", "+", m[1])
+	}
+	svg, err := url.PathUnescape(m[1])
+	if err != nil {
+		t.Fatalf("tile isn't percent-encoded SVG: %v", err)
+	}
+	if !strings.HasPrefix(svg, "<svg xmlns=") {
+		t.Errorf("decoded tile does not start with an SVG element:\n%s", svg)
+	}
+}

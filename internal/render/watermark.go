@@ -102,5 +102,12 @@ body::after {
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
-</style>`, url.QueryEscape(svg))
+</style>`, dataURIEscape(svg))
+}
+
+// dataURIEscape percent-encodes s for a data: URI. url.QueryEscape writes a
+// space as "+", which a data: URI reads as a plus sign, so the spaces are
+// written as %20 instead; a literal plus is already %2B.
+func dataURIEscape(s string) string {
+	return strings.ReplaceAll(url.QueryEscape(s), "+", "%20")
 }
