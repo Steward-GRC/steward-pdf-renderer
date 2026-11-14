@@ -29,8 +29,14 @@ import (
 )
 
 const (
-	defaultHTTPTimeout   = 30 * time.Second
-	defaultRenderTimeout = 120 * time.Second
+	defaultHTTPTimeout = 30 * time.Second
+
+	// A new pod's IP can reach the network policy a few seconds after its
+	// container starts, and until then the first dial is refused.
+	defaultFetchRetryWindow  = 60 * time.Second
+	defaultFetchRetryInitial = 500 * time.Millisecond
+	defaultFetchRetryMax     = 5 * time.Second
+	defaultRenderTimeout     = 120 * time.Second
 )
 
 func main() {
@@ -71,6 +77,13 @@ type runConfig struct {
 
 	httpTimeout   time.Duration
 	renderTimeout time.Duration
+	// The HTML fetch retries a refused or timed-out connection (the network
+	// may not admit a new pod yet) for fetchRetryWindow, waiting
+	// fetchRetryInitial after the first failure and doubling up to
+	// fetchRetryMax. A zero window dials once.
+	fetchRetryWindow  time.Duration
+	fetchRetryInitial time.Duration
+	fetchRetryMax     time.Duration
 	// browserStartTimeout bounds Chromium's start-up (BROWSER_START_TIMEOUT).
 	browserStartTimeout time.Duration
 }
@@ -110,6 +123,10 @@ func loadConfig() (runConfig, error) {
 
 		httpTimeout:   defaultHTTPTimeout,
 		renderTimeout: defaultRenderTimeout,
+
+		fetchRetryWindow:  defaultFetchRetryWindow,
+		fetchRetryInitial: defaultFetchRetryInitial,
+		fetchRetryMax:     defaultFetchRetryMax,
 	}
 
 	var errs []error
@@ -221,7 +238,7 @@ func storeConfig(c runConfig) s3store.Config {
 func renderPDF(ctx context.Context, cfg runConfig, r render.Renderer, store objectstore.Store, logger log.Logger) error {
 	logger.Info("fetching html", log.F("workload_token", cfg.tokenFile != ""))
 	start := time.Now()
-	htmlContent, err := fetchHTMLAs(ctx, cfg.fetchURL, cfg.httpTimeout, cfg.tokenFile)
+	htmlContent, err := fetchHTMLRetry(ctx, cfg, logger)
 	if err != nil {
 		return fmt.Errorf("fetch html: %w", err)
 	}
@@ -257,6 +274,46 @@ func renderPDF(ctx context.Context, cfg runConfig, r render.Renderer, store obje
 	return nil
 }
 
+// dialError is a failure to reach the server (refused, timed out, reset), as
+// opposed to an answer from it. Only these are worth retrying.
+type dialError struct{ err error }
+
+func (e *dialError) Error() string { return "http get: " + e.err.Error() }
+func (e *dialError) Unwrap() error { return e.err }
+
+// fetchHTMLRetry is fetchHTMLAs that retries a dialError with a doubling
+// backoff until cfg.fetchRetryWindow has passed or ctx ends. An answer from
+// the server (any status, a bad token file) is returned at once.
+func fetchHTMLRetry(ctx context.Context, cfg runConfig, logger log.Logger) (string, error) {
+	deadline := time.Now().Add(cfg.fetchRetryWindow)
+	wait := cfg.fetchRetryInitial
+	for attempt := 1; ; attempt++ {
+		html, err := fetchHTMLAs(ctx, cfg.fetchURL, cfg.httpTimeout, cfg.tokenFile)
+		if err == nil {
+			if attempt > 1 {
+				logger.Info("fetch succeeded after retries", log.F("attempts", attempt))
+			}
+			return html, nil
+		}
+		var de *dialError
+		if !errors.As(err, &de) || ctx.Err() != nil || !time.Now().Add(wait).Before(deadline) {
+			if errors.As(err, &de) {
+				logger.Warn("fetch failed, not retrying", log.F("attempts", attempt), log.F("error", err.Error()))
+			}
+			return "", err
+		}
+		logger.Warn("fetch could not connect, retrying", log.F("attempt", attempt), log.F("wait_ms", wait.Milliseconds()), log.F("error", err.Error()))
+		select {
+		case <-time.After(wait):
+		case <-ctx.Done():
+			return "", err
+		}
+		if wait *= 2; wait > cfg.fetchRetryMax {
+			wait = cfg.fetchRetryMax
+		}
+	}
+}
+
 // fetchHTML GETs the URL and returns the response body. Non-2xx is an error;
 // the Job's backoff retries. The body is capped at 8 MiB so a runaway page
 // can't exhaust the pod's memory.
@@ -288,7 +345,7 @@ func fetchHTMLAs(ctx context.Context, url string, timeout time.Duration, tokenFi
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("http get: %w", err)
+		return "", &dialError{err: err}
 	}
 	defer func() { _ = resp.Body.Close() }()
 
